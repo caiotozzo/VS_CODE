@@ -34,7 +34,7 @@ int atualizarConta(FILE *arquivo, const Conta *conta)
 
 void cadastrarConta(void)
 {
-    Conta conta, existente;
+    Conta novaConta, contaExistente;
     FILE *arquivo = fopen("contas.dat", "rb+");
 
     if (arquivo == NULL)
@@ -44,9 +44,9 @@ void cadastrarConta(void)
     }
 
     printf("Numero da conta: ");
-    scanf("%ld", &conta.numero);
+    scanf("%ld", &novaConta.numero);
 
-    if (buscarConta(arquivo, conta.numero, &existente))
+    if (buscarConta(arquivo, novaConta.numero, &contaExistente))
     {
         printf("Essa conta ja existe.\n");
         fclose(arquivo);
@@ -54,14 +54,14 @@ void cadastrarConta(void)
     }
 
     printf("Titular: ");
-    scanf("%s", conta.titular);
+    scanf("%s", novaConta.titular);
     printf("CPF: ");
-    scanf("%s", conta.cpf);
-    conta.saldo = 0;
-    conta.situacao = CONTA_ATIVA;
+    scanf("%s", novaConta.cpf);
+    novaConta.saldo = 0;
+    novaConta.situacao = CONTA_ATIVA;
 
     fseek(arquivo, 0, SEEK_END);
-    fwrite(&conta, sizeof(Conta), 1, arquivo);
+    fwrite(&novaConta, sizeof(Conta), 1, arquivo);
     printf("Conta cadastrada.\n");
 
     fclose(arquivo);
@@ -70,7 +70,7 @@ void cadastrarConta(void)
 void consultarConta(void)
 {
     Conta conta;
-    long numero;
+    long numeroConta;
     FILE *arquivo = fopen("contas.dat", "rb");
 
     if (arquivo == NULL)
@@ -80,9 +80,9 @@ void consultarConta(void)
     }
 
     printf("Numero da conta: ");
-    scanf("%ld", &numero);
+    scanf("%ld", &numeroConta);
 
-    if (buscarConta(arquivo, numero, &conta))
+    if (buscarConta(arquivo, numeroConta, &conta))
     {
         printf("Numero: %ld\n", conta.numero);
         printf("Titular: %s\n", conta.titular);
@@ -102,7 +102,7 @@ void consultarConta(void)
 int depositar(long numeroConta, double valor)
 {
     Conta conta;
-    int ok = 0;
+    int deuCerto = 0;
     FILE *arquivo = fopen("contas.dat", "rb+");
 
     if (arquivo == NULL)
@@ -111,17 +111,17 @@ int depositar(long numeroConta, double valor)
     if (valor > 0 && buscarConta(arquivo, numeroConta, &conta) && conta.situacao == CONTA_ATIVA)
     {
         conta.saldo = conta.saldo + valor;
-        ok = atualizarConta(arquivo, &conta);
+        deuCerto = atualizarConta(arquivo, &conta);
     }
 
     fclose(arquivo);
-    return ok;
+    return deuCerto;
 }
 
 int sacar(long numeroConta, double valor)
 {
     Conta conta;
-    int ok = 0;
+    int deuCerto = 0;
     FILE *arquivo = fopen("contas.dat", "rb+");
 
     if (arquivo == NULL)
@@ -131,16 +131,16 @@ int sacar(long numeroConta, double valor)
         conta.situacao == CONTA_ATIVA && conta.saldo >= valor)
     {
         conta.saldo = conta.saldo - valor;
-        ok = atualizarConta(arquivo, &conta);
+        deuCerto = atualizarConta(arquivo, &conta);
     }
 
     fclose(arquivo);
-    return ok;
+    return deuCerto;
 }
 
 int transferir(long contaOrigem, long contaDestino, double valor)
 {
-    Conta origem, destino;
+    Conta dadosOrigem, dadosDestino;
     FILE *arquivo;
 
     if (contaOrigem == contaDestino || valor <= 0)
@@ -151,11 +151,11 @@ int transferir(long contaOrigem, long contaDestino, double valor)
         return 0;
 
     /* verifica tudo antes de mexer nos saldos */
-    if (!buscarConta(arquivo, contaOrigem, &origem) ||
-        !buscarConta(arquivo, contaDestino, &destino) ||
-        origem.situacao != CONTA_ATIVA ||
-        destino.situacao != CONTA_ATIVA ||
-        origem.saldo < valor)
+    if (!buscarConta(arquivo, contaOrigem, &dadosOrigem) ||
+        !buscarConta(arquivo, contaDestino, &dadosDestino) ||
+        dadosOrigem.situacao != CONTA_ATIVA ||
+        dadosDestino.situacao != CONTA_ATIVA ||
+        dadosOrigem.saldo < valor)
     {
         fclose(arquivo);
         return 0;
@@ -193,7 +193,7 @@ void listarContas(void)
 int encerrarConta(long numeroConta)
 {
     Conta conta;
-    int ok = 0;
+    int deuCerto = 0;
     FILE *arquivo = fopen("contas.dat", "rb+");
 
     if (arquivo == NULL)
@@ -203,17 +203,17 @@ int encerrarConta(long numeroConta)
         conta.situacao == CONTA_ATIVA && conta.saldo == 0)
     {
         conta.situacao = CONTA_ENCERRADA;
-        ok = atualizarConta(arquivo, &conta);
+        deuCerto = atualizarConta(arquivo, &conta);
     }
 
     fclose(arquivo);
-    return ok;
+    return deuCerto;
 }
 
 int main(void)
 {
     int opcao;
-    long numero, destino;
+    long numeroConta, contaOrigem, contaDestino;
     double valor;
     FILE *arquivo = fopen("contas.dat", "ab");
 
@@ -244,10 +244,10 @@ int main(void)
         else if (opcao == 3)
         {
             printf("Conta: ");
-            scanf("%ld", &numero);
+            scanf("%ld", &numeroConta);
             printf("Valor: ");
             scanf("%lf", &valor);
-            if (depositar(numero, valor))
+            if (depositar(numeroConta, valor))
                 printf("Deposito realizado.\n");
             else
                 printf("Nao foi possivel depositar.\n");
@@ -255,10 +255,10 @@ int main(void)
         else if (opcao == 4)
         {
             printf("Conta: ");
-            scanf("%ld", &numero);
+            scanf("%ld", &numeroConta);
             printf("Valor: ");
             scanf("%lf", &valor);
-            if (sacar(numero, valor))
+            if (sacar(numeroConta, valor))
                 printf("Saque realizado.\n");
             else
                 printf("Nao foi possivel sacar.\n");
@@ -266,12 +266,12 @@ int main(void)
         else if (opcao == 5)
         {
             printf("Conta de origem: ");
-            scanf("%ld", &numero);
+            scanf("%ld", &contaOrigem);
             printf("Conta de destino: ");
-            scanf("%ld", &destino);
+            scanf("%ld", &contaDestino);
             printf("Valor: ");
             scanf("%lf", &valor);
-            if (transferir(numero, destino, valor))
+            if (transferir(contaOrigem, contaDestino, valor))
                 printf("Transferencia realizada.\n");
             else
                 printf("Nao foi possivel transferir.\n");
@@ -281,8 +281,8 @@ int main(void)
         else if (opcao == 7)
         {
             printf("Conta: ");
-            scanf("%ld", &numero);
-            if (encerrarConta(numero))
+            scanf("%ld", &numeroConta);
+            if (encerrarConta(numeroConta))
                 printf("Conta encerrada.\n");
             else
                 printf("Nao foi possivel encerrar.\n");
